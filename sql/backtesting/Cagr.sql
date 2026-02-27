@@ -3,7 +3,7 @@ WITH base AS (
     nav_date,
     nav,
     portfolio_return
-  FROM `fluid-terminal-465516-s7.magic_formula.bt_portfolio_nav_d3_norebuy`
+  FROM `${PROJECT_ID}.magic_formula.bt_portfolio_nav_d3_norebuy`
 ),
 
 bounds AS (
