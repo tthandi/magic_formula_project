@@ -13,7 +13,7 @@ WITH bs AS (
     propertyPlantEquipment,
     totalAssets,
     goodwill
-  FROM `fluid-terminal-465516-s7.magic_formula.balance_sheet`
+  FROM `${PROJECT_ID}.magic_formula.balance_sheet`
 ),
 
 is_q AS (
@@ -21,7 +21,7 @@ is_q AS (
     symbol AS is_symbol,
     fiscalDateEnding,
     COALESCE(ebit, operatingIncome) AS ebit
-  FROM `fluid-terminal-465516-s7.magic_formula.income_statement`
+  FROM `${PROJECT_ID}.magic_formula.income_statement`
 ),
 
 -- latest overview per symbol (for metadata; no filtering here)
@@ -46,7 +46,7 @@ co_latest AS (
         PARTITION BY symbol
         ORDER BY yyyymm DESC
       ) AS rn
-    FROM `fluid-terminal-465516-s7.magic_formula.company_overview`
+    FROM `${PROJECT_ID}.magic_formula.company_overview`
   )
   WHERE rn = 1
 ),
@@ -111,7 +111,7 @@ snapshots_with_fundamentals AS (
       PARTITION BY mc.symbol, mc.snapshotDate
       ORDER BY fin_q.fiscalDateEnding DESC
     ) AS rn
-  FROM `fluid-terminal-465516-s7.magic_formula.market_cap` AS mc
+  FROM `${PROJECT_ID}.magic_formula.market_cap` AS mc
   JOIN fin_q
     ON mc.symbol = fin_q.symbol
    AND fin_q.fiscalDateEnding <= mc.snapshotDate
