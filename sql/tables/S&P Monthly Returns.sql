@@ -1,9 +1,9 @@
-CREATE OR REPLACE TABLE `fluid-terminal-465516-s7.magic_formula.sp500_monthly_returns` AS
+CREATE OR REPLACE TABLE `${PROJECT_ID}.magic_formula.sp500_monthly_returns` AS
 WITH daily AS (
   SELECT
     DATE(date) AS date,
     CAST(adj_close AS FLOAT64) AS adj_close
-  FROM `fluid-terminal-465516-s7.magic_formula.benchmark_daily_price`
+  FROM `${PROJECT_ID}.magic_formula.benchmark_daily_price`
   WHERE symbol = 'SP500TR'
     AND adj_close IS NOT NULL
 ),
