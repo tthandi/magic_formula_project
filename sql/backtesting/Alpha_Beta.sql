@@ -8,7 +8,7 @@ active_holdings AS (
     m.month,
     COUNT(DISTINCT t.symbol) AS holdings_count
   FROM months m
-  LEFT JOIN `fluid-terminal-465516-s7.magic_formula.bt_trades_d3_norebuy` t
+  LEFT JOIN `${PROJECT_ID}.bt_trades_d3_norebuy` t
     ON DATE_TRUNC(t.buy_date, MONTH) <= m.month
    AND DATE_TRUNC(t.sell_date, MONTH) > m.month
   GROUP BY m.month
@@ -25,14 +25,14 @@ strat AS (
   SELECT
     DATE_TRUNC(period_end, MONTH) AS month,
     portfolio_return AS strat_return
-  FROM `fluid-terminal-465516-s7.magic_formula.bt_nav_period_returns_d3_norebuy`
+  FROM `${PROJECT_ID}.magic_formula.bt_nav_period_returns_d3_norebuy`
 ),
 
 bench AS (
   SELECT
     DATE_TRUNC(nav_date, MONTH) AS month,
     bench_return
-  FROM `fluid-terminal-465516-s7.magic_formula.sp500_monthly_returns`
+  FROM `${PROJECT_ID}.magic_formula.sp500_monthly_returns`
 ),
 
 joined AS (
