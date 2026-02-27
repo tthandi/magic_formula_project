@@ -1,4 +1,4 @@
-CREATE OR REPLACE TABLE `fluid-terminal-465516-s7.magic_formula.market_magic_formula_values_no_exclusions` AS
+CREATE OR REPLACE TABLE `${PROJECT_ID}.magic_formula.market_magic_formula_values_no_exclusions` AS
 WITH
 -- 1) Balance sheet
 bs AS (
@@ -16,7 +16,7 @@ bs AS (
     propertyPlantEquipment,
     totalAssets,
     goodwill
-  FROM `fluid-terminal-465516-s7.magic_formula.balance_sheet`
+  FROM `${PROJECT_ID}.magic_formula.balance_sheet`
 ),
 
 -- 2) Income statement
@@ -25,7 +25,7 @@ is_q AS (
     symbol AS is_symbol,
     fiscalDateEnding,
     COALESCE(ebit, operatingIncome) AS ebit
-  FROM `fluid-terminal-465516-s7.magic_formula.income_statement`
+  FROM `${PROJECT_ID}.magic_formula.income_statement`
 ),
 
 -- 3) Latest company overview per symbol
