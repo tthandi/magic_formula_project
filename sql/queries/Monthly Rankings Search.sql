@@ -5,7 +5,7 @@
 -- - Choose top_n
 -- ============================================================
 
-DECLARE formation_qdate DATE DEFAULT DATE '2018-01-31';
+DECLARE formation_qdate DATE DEFAULT DATE '';
 DECLARE top_n INT64 DEFAULT 50;
 
 -- "D3" => score = z(ey) + z(roc)  (Rule D3 style ranking)
@@ -25,7 +25,7 @@ WITH base AS (
     peRatio,
     ev,
     ebit
-  FROM `fluid-terminal-465516-s7.magic_formula.market_magic_formula_values_with_exclusions`
+  FROM `${PROJECT_ID}.magic_formula.market_magic_formula_values_with_exclusions`
   WHERE qdate = formation_qdate
     AND ey IS NOT NULL
     AND roc IS NOT NULL
