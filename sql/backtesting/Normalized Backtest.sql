@@ -16,8 +16,8 @@ DECLARE score3 FLOAT64;
 DECLARE desired_buys INT64;
 
 -- EDIT IF NEEDED:
-DECLARE UNIVERSE_TABLE STRING DEFAULT 'fluid-terminal-465516-s7.magic_formula.market_magic_formula_values_with_exclusions';
-DECLARE PRICE_TABLE    STRING DEFAULT 'fluid-terminal-465516-s7.magic_formula.daily_price';
+DECLARE UNIVERSE_TABLE STRING DEFAULT '${PROJECT_ID}.magic_formula.market_magic_formula_values_with_exclusions';
+DECLARE PRICE_TABLE    STRING DEFAULT '${PROJECT_ID}.magic_formula.daily_price';
 
 -- ============================================================
 -- 1) Precompute monthly scores + ranks for every qdate, symbol
@@ -121,7 +121,7 @@ END FOR;
 -- 3) Write monthly picks table (wide format)
 -- ============================================================
 
-CREATE OR REPLACE TABLE `fluid-terminal-465516-s7.magic_formula.bt_monthly_picks_d3_norebuy` AS
+CREATE OR REPLACE TABLE `${PROJECT_ID}.magic_formula.bt_monthly_picks_d3_norebuy` AS
 SELECT
   qdate,
   MAX(IF(pick_order = 1, symbol, NULL)) AS pick1,
@@ -140,13 +140,13 @@ ORDER BY qdate;
 -- ============================================================
 
 EXECUTE IMMEDIATE FORMAT("""
-CREATE OR REPLACE TABLE `fluid-terminal-465516-s7.magic_formula.bt_trades_d3_norebuy` AS
+CREATE OR REPLACE TABLE `${PROJECT_ID}.magic_formula.bt_trades_d3_norebuy` AS
 WITH picks AS (
-  SELECT qdate, pick1 AS symbol FROM `fluid-terminal-465516-s7.magic_formula.bt_monthly_picks_d3_norebuy`
+  SELECT qdate, pick1 AS symbol FROM `${PROJECT_ID}.magic_formula.bt_monthly_picks_d3_norebuy`
   UNION ALL
-  SELECT qdate, pick2 AS symbol FROM `fluid-terminal-465516-s7.magic_formula.bt_monthly_picks_d3_norebuy`
+  SELECT qdate, pick2 AS symbol FROM `${PROJECT_ID}.magic_formula.bt_monthly_picks_d3_norebuy`
   UNION ALL
-  SELECT qdate, pick3 AS symbol FROM `fluid-terminal-465516-s7.magic_formula.bt_monthly_picks_d3_norebuy`
+  SELECT qdate, pick3 AS symbol FROM `${PROJECT_ID}.magic_formula.bt_monthly_picks_d3_norebuy`
   WHERE pick3 IS NOT NULL
 ),
 
@@ -199,7 +199,7 @@ FROM priced;
 -- 5) Cohort return series (each month’s buys held ~1 year)
 -- ============================================================
 
-CREATE OR REPLACE TABLE `fluid-terminal-465516-s7.magic_formula.bt_cohort_returns_d3_norebuy` AS
+CREATE OR REPLACE TABLE `${PROJECT_ID}.magic_formula.bt_cohort_returns_d3_norebuy` AS
 SELECT
   formation_date,
   COUNT(*) AS n_buys,
@@ -207,6 +207,6 @@ SELECT
   MIN(stock_return) AS min_stock_return,
   MAX(stock_return) AS max_stock_return,
   APPROX_QUANTILES(stock_return, 5) AS return_quintiles
-FROM `fluid-terminal-465516-s7.magic_formula.bt_trades_d3_norebuy`
+FROM `${PROJECT_ID}.magic_formula.bt_trades_d3_norebuy`
 GROUP BY formation_date
 ORDER BY formation_date;
