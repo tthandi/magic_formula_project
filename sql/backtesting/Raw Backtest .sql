@@ -41,7 +41,7 @@ SELECT
     PARTITION BY qdate
     ORDER BY ey DESC, roc DESC, symbol
   ) AS rnk
-FROM `fluid-terminal-465516-s7.magic_formula.market_magic_formula_values_with_exclusions`
+FROM `${PROJECT_ID}.magic_formula.market_magic_formula_values_with_exclusions`
 WHERE qdate BETWEEN start_qdate AND end_qdate
   AND ey IS NOT NULL
   AND roc IS NOT NULL;
@@ -111,7 +111,7 @@ FOR m IN (
 END FOR;
 
 -- Persist monthly picks (wide)
-CREATE OR REPLACE TABLE `fluid-terminal-465516-s7.magic_formula.bt_monthly_picks_raw_norebuy` AS
+CREATE OR REPLACE TABLE `${PROJECT_ID}.magic_formula.bt_monthly_picks_raw_norebuy` AS
 SELECT
   qdate,
   MAX(IF(pick_order = 1, symbol, NULL)) AS pick1,
@@ -134,13 +134,13 @@ ORDER BY qdate;
 -- 3) Trades (buy/sell dates + 1Y returns)
 -- ============================================================
 
-CREATE OR REPLACE TABLE `fluid-terminal-465516-s7.magic_formula.bt_trades_raw_norebuy` AS
+CREATE OR REPLACE TABLE `${PROJECT_ID}.magic_formula.bt_trades_raw_norebuy` AS
 WITH picks AS (
-  SELECT qdate, pick1 AS symbol FROM `fluid-terminal-465516-s7.magic_formula.bt_monthly_picks_raw_norebuy`
+  SELECT qdate, pick1 AS symbol FROM `${PROJECT_ID}.magic_formula.bt_monthly_picks_raw_norebuy`
   UNION ALL
-  SELECT qdate, pick2 AS symbol FROM `fluid-terminal-465516-s7.magic_formula.bt_monthly_picks_raw_norebuy`
+  SELECT qdate, pick2 AS symbol FROM `${PROJECT_ID}.magic_formula.bt_monthly_picks_raw_norebuy`
   UNION ALL
-  SELECT qdate, pick3 AS symbol FROM `fluid-terminal-465516-s7.magic_formula.bt_monthly_picks_raw_norebuy`
+  SELECT qdate, pick3 AS symbol FROM `${PROJECT_ID}.magic_formula.bt_monthly_picks_raw_norebuy`
   WHERE pick3 IS NOT NULL
 ),
 buy_dates AS (
@@ -149,7 +149,7 @@ buy_dates AS (
     p.symbol,
     MIN(dp.date) AS buy_date
   FROM picks p
-  JOIN `fluid-terminal-465516-s7.magic_formula.daily_price` dp
+  JOIN `${PROJECT_ID}.magic_formula.daily_price` dp
     ON dp.symbol = p.symbol
    AND dp.date > p.qdate
   GROUP BY formation_date, symbol
@@ -161,7 +161,7 @@ sell_dates AS (
     b.buy_date,
     MIN(dp.date) AS sell_date
   FROM buy_dates b
-  JOIN `fluid-terminal-465516-s7.magic_formula.daily_price` dp
+  JOIN `${PROJECT_ID}.magic_formula.daily_price` dp
     ON dp.symbol = b.symbol
    AND dp.date >= DATE_ADD(b.formation_date, INTERVAL 1 YEAR)
   GROUP BY b.formation_date, b.symbol, b.buy_date
@@ -176,9 +176,9 @@ priced AS (
     sp.adj_close AS sell_adj,
     SAFE_DIVIDE(sp.adj_close, bp.adj_close) - 1 AS stock_return
   FROM sell_dates s
-  JOIN `fluid-terminal-465516-s7.magic_formula.daily_price` bp
+  JOIN `${PROJECT_ID}.magic_formula.daily_price` bp
     ON bp.symbol = s.symbol AND bp.date = s.buy_date
-  JOIN `fluid-terminal-465516-s7.magic_formula.daily_price` sp
+  JOIN `${PROJECT_ID}.magic_formula.daily_price` sp
     ON sp.symbol = s.symbol AND sp.date = s.sell_date
 )
 SELECT * FROM priced;
@@ -190,12 +190,12 @@ SELECT * FROM priced;
 -- Trading calendar
 CREATE TEMP TABLE cal AS
 SELECT DISTINCT date
-FROM `fluid-terminal-465516-s7.magic_formula.daily_price`;
+FROM `${PROJECT_ID}.magic_formula.daily_price`;
 
 -- Strategy months
 CREATE TEMP TABLE qdates AS
 SELECT qdate
-FROM `fluid-terminal-465516-s7.magic_formula.bt_monthly_picks_raw_norebuy`
+FROM `${PROJECT_ID}.magic_formula.bt_monthly_picks_raw_norebuy`
 WHERE qdate BETWEEN start_qdate AND end_qdate;
 
 -- Anchor date = next trading day after qdate
@@ -224,7 +224,7 @@ SELECT
   p.period_end,
   t.symbol
 FROM periods p
-JOIN `fluid-terminal-465516-s7.magic_formula.bt_trades_raw_norebuy` t
+JOIN `${PROJECT_ID}.magic_formula.bt_trades_raw_norebuy` t
   ON t.buy_date <= p.period_start
  AND t.sell_date >  p.period_start;
 
@@ -236,7 +236,7 @@ SELECT
   h.symbol,
   dp.adj_close AS px_start
 FROM holdings h
-JOIN `fluid-terminal-465516-s7.magic_formula.daily_price` dp
+JOIN `${PROJECT_ID}.magic_formula.daily_price` dp
   ON dp.symbol = h.symbol
  AND dp.date <= h.period_start
 QUALIFY ROW_NUMBER() OVER (
@@ -252,7 +252,7 @@ SELECT
   h.symbol,
   dp.adj_close AS px_end
 FROM holdings h
-JOIN `fluid-terminal-465516-s7.magic_formula.daily_price` dp
+JOIN `${PROJECT_ID}.magic_formula.daily_price` dp
   ON dp.symbol = h.symbol
  AND dp.date <= h.period_end
 QUALIFY ROW_NUMBER() OVER (
@@ -278,7 +278,7 @@ WHERE s.px_start IS NOT NULL
   AND e.px_end   IS NOT NULL;
 
 -- Portfolio monthly returns
-CREATE OR REPLACE TABLE `fluid-terminal-465516-s7.magic_formula.bt_nav_period_returns_raw_norebuy` AS
+CREATE OR REPLACE TABLE `${PROJECT_ID}.magic_formula.bt_nav_period_returns_raw_norebuy` AS
 SELECT
   period_start,
   period_end,
@@ -292,12 +292,12 @@ GROUP BY period_start, period_end
 ORDER BY period_start;
 
 -- NAV
-CREATE OR REPLACE TABLE `fluid-terminal-465516-s7.magic_formula.bt_portfolio_nav_raw_norebuy` AS
+CREATE OR REPLACE TABLE `${PROJECT_ID}.magic_formula.bt_portfolio_nav_raw_norebuy` AS
 WITH r AS (
   SELECT
     period_end AS nav_date,
     portfolio_return
-  FROM `fluid-terminal-465516-s7.magic_formula.bt_nav_period_returns_raw_norebuy`
+  FROM `${PROJECT_ID}.magic_formula.bt_nav_period_returns_raw_norebuy`
 ),
 nav AS (
   SELECT
