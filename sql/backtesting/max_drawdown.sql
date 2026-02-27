@@ -2,7 +2,7 @@ WITH navs AS (
   SELECT
     nav_date,
     nav
-  FROM `fluid-terminal-465516-s7.magic_formula.bt_portfolio_nav_d3_norebuy`
+  FROM `${PROJECT_ID}.magic_formula.bt_portfolio_nav_d3_norebuy`
 ),
 
 peaks AS (
