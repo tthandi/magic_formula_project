@@ -3,7 +3,7 @@
 -- Non-correlated, BigQuery-safe. One statement per EXECUTE IMMEDIATE.
 -- ======================================================================
 
-DECLARE p_project STRING DEFAULT 'fluid-terminal-465516-s7';
+DECLARE p_project STRING DEFAULT '';
 DECLARE p_dataset STRING DEFAULT 'magic_formula';
 
 DECLARE t_bs   STRING DEFAULT FORMAT('`%s.%s.balance_sheet`', p_project, p_dataset);
