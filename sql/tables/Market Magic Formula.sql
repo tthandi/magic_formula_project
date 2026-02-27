@@ -1,9 +1,9 @@
 CREATE OR REPLACE TABLE
-  `fluid-terminal-465516-s7.magic_formula.market_magic_formula_values_with_exclusions` AS
+  `${PROJECT_ID}.magic_formula.market_magic_formula_values_with_exclusions` AS
 
 WITH base AS (
   SELECT *
-  FROM `fluid-terminal-465516-s7.magic_formula.market_magic_formula_values_no_exclusions`
+  FROM `${PROJECT_ID}.magic_formula.market_magic_formula_values_no_exclusions`
 ),
 
 filtered AS (
