@@ -14,12 +14,12 @@ DECLARE end_qdate   DATE DEFAULT DATE '2025-01-31';
 -- 0) Trading calendar (all trading dates we have)
 CREATE TEMP TABLE cal AS
 SELECT DISTINCT date
-FROM `fluid-terminal-465516-s7.magic_formula.daily_price`;
+FROM `${PROJECT_ID}.magic_formula.daily_price`;
 
 -- 1) Monthly qdates (strategy months)
 CREATE TEMP TABLE qdates AS
 SELECT qdate
-FROM `fluid-terminal-465516-s7.magic_formula.bt_monthly_picks_d3_norebuy`
+FROM `${PROJECT_ID}.magic_formula.bt_monthly_picks_d3_norebuy`
 WHERE qdate BETWEEN start_qdate AND end_qdate;
 
 -- 2) Anchor date = next trading day after each qdate (JOIN + MIN)
@@ -48,7 +48,7 @@ SELECT
   p.period_end,
   t.symbol
 FROM periods p
-JOIN `fluid-terminal-465516-s7.magic_formula.bt_trades_d3_norebuy` t
+JOIN `${PROJECT_ID}.magic_formula.bt_trades_d3_norebuy` t
   ON t.buy_date <= p.period_start
  AND t.sell_date >  p.period_start;
 
@@ -60,7 +60,7 @@ SELECT
   h.symbol,
   dp.adj_close AS px_start
 FROM holdings h
-JOIN `fluid-terminal-465516-s7.magic_formula.daily_price` dp
+JOIN `${PROJECT_ID}.magic_formula.daily_price` dp
   ON dp.symbol = h.symbol
  AND dp.date <= h.period_start
 QUALIFY ROW_NUMBER() OVER (
@@ -76,7 +76,7 @@ SELECT
   h.symbol,
   dp.adj_close AS px_end
 FROM holdings h
-JOIN `fluid-terminal-465516-s7.magic_formula.daily_price` dp
+JOIN `${PROJECT_ID}.magic_formula.daily_price` dp
   ON dp.symbol = h.symbol
  AND dp.date <= h.period_end
 QUALIFY ROW_NUMBER() OVER (
@@ -102,7 +102,7 @@ WHERE s.px_start IS NOT NULL
   AND e.px_end   IS NOT NULL;
 
 -- 7) Portfolio monthly returns (equal-weight across active holdings)
-CREATE OR REPLACE TABLE `fluid-terminal-465516-s7.magic_formula.bt_nav_period_returns_d3_norebuy` AS
+CREATE OR REPLACE TABLE `${PROJECT_ID}.magic_formula.bt_nav_period_returns_d3_norebuy` AS
 SELECT
   period_start,
   period_end,
@@ -116,12 +116,12 @@ GROUP BY period_start, period_end
 ORDER BY period_start;
 
 -- 8) NAV (compounded)
-CREATE OR REPLACE TABLE `fluid-terminal-465516-s7.magic_formula.bt_portfolio_nav_d3_norebuy` AS
+CREATE OR REPLACE TABLE `${PROJECT_ID}.magic_formula.bt_portfolio_nav_d3_norebuy` AS
 WITH r AS (
   SELECT
     period_end AS nav_date,
     portfolio_return
-  FROM `fluid-terminal-465516-s7.magic_formula.bt_nav_period_returns_d3_norebuy`
+  FROM `${PROJECT_ID}.magic_formula.bt_nav_period_returns_d3_norebuy`
 ),
 nav AS (
   SELECT
