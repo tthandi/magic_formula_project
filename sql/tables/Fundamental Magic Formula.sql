@@ -1,4 +1,4 @@
-  CREATE OR REPLACE TABLE `fluid-terminal-465516-s7.magic_formula.fundamental_magic_formula_values` AS
+  CREATE OR REPLACE TABLE `${PROJECT_ID}.magic_formula.fundamental_magic_formula_values` AS
 WITH
 -- 1) Balance sheet (quarterly + annual already in your table)
 bs AS (
@@ -16,7 +16,7 @@ bs AS (
     propertyPlantEquipment,
     totalAssets,
     goodwill
-  FROM `fluid-terminal-465516-s7.magic_formula.balance_sheet`
+  FROM `${PROJECT_ID}.magic_formula.balance_sheet`
 ),
 
 -- 2) Income statement (prefer ebit; fallback to operatingIncome)
@@ -25,7 +25,7 @@ is_q AS (
     symbol AS is_symbol,
     fiscalDateEnding,
     COALESCE(ebit, operatingIncome) AS ebit
-  FROM `fluid-terminal-465516-s7.magic_formula.income_statement`
+  FROM `${PROJECT_ID}.magic_formula.income_statement`
 ),
 
 -- 3) Latest company overview per symbol (metadata only)
@@ -45,7 +45,7 @@ co_latest AS (
       country,
       yyyymm,
       ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY yyyymm DESC) AS rn
-    FROM `fluid-terminal-465516-s7.magic_formula.company_overview`
+    FROM `${PROJECT_ID}.magic_formula.company_overview`
   )
   WHERE rn = 1
 ),
