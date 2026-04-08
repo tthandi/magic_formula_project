@@ -1,0 +1,20 @@
+.DS_Store
+
+# Python / notebooks
+__pycache__/
+.ipynb_checkpoints/
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Editor / IDE
+.vscode/
+.idea/
+
+# Local data artifacts
+data/
+outputs/
+tmp/
