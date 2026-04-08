@@ -19,7 +19,7 @@ It is organized around:
 - Supports exclusion and no-exclusion universes (size, valuation, sector/industry filters).
 - Runs two backtest styles:
   - raw ranking flow
-  - normalized/z-score ranking flow (D3 rule)
+  - normalized/z-score ranking flow 
 - Uses a no-rebuy holding rule with monthly replacement logic.
 - Compares strategy NAV and returns vs S&P benchmark series.
 - Includes diagnostics SQL for data integrity, alignment, and missingness analysis.
@@ -42,27 +42,36 @@ magic_formula_project/
 
 ## Setup
 
-> Placeholder: update this section with your exact runtime environment if different.
-
 ### 1) Prerequisites
 
-- Google BigQuery project + dataset (expected dataset name: `magic_formula`)
-- Source tables loaded (examples referenced by SQL):
-  - `balance_sheet`
-  - `income_statement`
-  - `company_overview`
-  - `market_cap`
-  - `daily_price`
-  - `benchmark_daily_price`
-- Optional: Python/Jupyter environment for notebooks and plotting
+- Google Cloud Project with:
+  - BigQuery enabled
+  - Dataset: `magic_formula`
+- Python environment (recommended):
+  - Python `3.9+`
+  - `pandas`, `matplotlib`, `google-cloud-bigquery`
+- Alpha Vantage API key (for data ingestion)
 
-### 2) Configure project IDs in SQL
+### 2) Data sources
+
+The pipeline expects the following core tables:
+
+| Table | Description |
+| --- | --- |
+| `balance_sheet` | Assets, liabilities, debt, cash |
+| `income_statement` | EBIT / operating income |
+| `company_overview` | Sector, industry, metadata |
+| `market_cap` | Market capitalization snapshots |
+| `daily_price` | Adjusted OHLC price data |
+| `benchmark_daily_price` | S&P 500 benchmark series |
+
+### 3) Configure project IDs in SQL
 
 Several scripts use `${PROJECT_ID}` placeholders. Replace or parameterize them before execution.
 
 Some scripts currently include hardcoded project names. Standardize these to your project before running end-to-end.
 
-### 3) Recommended execution order
+### 4) Recommended execution order
 
 1. Run ingestion notebooks in `notebooks/` (if raw data is not already loaded).
 2. Build factor tables from `sql/tables/`.
@@ -70,9 +79,37 @@ Some scripts currently include hardcoded project names. Standardize these to you
 4. Run backtests in `sql/backtesting/`.
 5. Run graph/report queries in `sql/graphs/` and export visuals.
 
-## Expected tables built
+## Factor definitions
 
-The following tables are expected from core SQL scripts (names as defined in scripts):
+The Magic Formula is built using:
+
+### Return on Capital (ROC)
+
+`ROC = EBIT / (NWC + NFA)`
+
+Where:
+- `NWC (Net Working Capital) = Current Assets - Cash - (Current Liabilities - Debt)`
+- `NFA (Net Fixed Assets) ~= PPE` or `(Total Assets - Current Assets - Goodwill)`
+
+### Earnings Yield (EY)
+
+`EY = EBIT / EnterpriseValue`
+
+Where:
+- `EV = MarketCap + Debt - Cash`
+
+## Backtesting methodology
+
+- Rebalance frequency: monthly
+- Buy timing: next trading day after month-end
+- Sell timing: ~1 year later (first available trading day)
+- Portfolio construction:
+  - equal weight
+  - typically 2-3 stocks per month
+- No-rebuy rule:
+  - cannot re-enter a stock within 1 year of holding
+
+## Expected tables built
 
 ### Universe and factor tables
 
@@ -88,7 +125,7 @@ The following tables are expected from core SQL scripts (names as defined in scr
 - `magic_formula.bt_nav_period_returns_raw_norebuy`
 - `magic_formula.bt_portfolio_nav_raw_norebuy`
 
-### Normalized (D3) backtest outputs
+### Normalized backtest outputs
 
 - `magic_formula.bt_monthly_picks_d3_norebuy`
 - `magic_formula.bt_trades_d3_norebuy`
@@ -96,7 +133,7 @@ The following tables are expected from core SQL scripts (names as defined in scr
 - `magic_formula.bt_nav_period_returns_d3_norebuy`
 - `magic_formula.bt_portfolio_nav_d3_norebuy`
 
-### Optional yfinance supplement tables
+### yfinance supplement tables
 
 - `magic_formula.symbol_yf_map`
 - `magic_formula.daily_price_yf`
@@ -113,7 +150,7 @@ The following tables are expected from core SQL scripts (names as defined in scr
 - Optional 3rd monthly buy is based on closeness to rank #2 in both EY and ROC.
 - Useful as a direct, low-transformation baseline.
 
-### Normalized (D3)
+### Normalized 
 
 - Converts EY and ROC to monthly z-scores and combines into a single score.
 - Optional 3rd monthly buy uses score proximity (`score3 >= score2 - delta`).
@@ -128,14 +165,40 @@ This repo includes result artifacts for both approaches:
 
 ### Performance summary
 
-> Placeholder: add key metrics here once finalized (CAGR, max drawdown, alpha/beta, Sharpe, hit rate, etc.).
+Period tested: `2006-03-01` to `2025-02-03`
 
-Suggested template:
-- Period tested: `TODO`
-- Strategy CAGR: `TODO`
-- Benchmark CAGR: `TODO`
-- Max drawdown (strategy / benchmark): `TODO / TODO`
-- Alpha / Beta: `TODO / TODO`
+| Metric | Raw | Normalized |
+| --- | ---: | ---: |
+| Start NAV | 1.0622 | 1.0757 |
+| End NAV | 26.3665 | 35.3121 |
+| Total return | 2382.33% | 3182.66% |
+| CAGR | 18.24% | 19.98% |
+| Annualized volatility | 22.80% | 21.72% |
+| Sharpe | 0.868 | 0.971 |
+| Max drawdown | -44.28% | -45.13% |
+| Beta | 1.103 | 1.016 |
+| Alpha (annualized) | 7.27% | 9.67% |
+| Correlation vs S&P | 0.834 | 0.807 |
+| R-squared vs S&P | 0.696 | 0.651 |
+| CAGR outperformance vs S&P | 7.70%/yr | 9.43%/yr |
+| Trade count | 468 | 409 |
+| Win rate | 64.96% | 68.70% |
+| Avg trade return | 21.26% | 21.60% |
+| Median trade return | 12.39% | 12.98% |
+| Best trade | 576.50% | 576.50% |
+| Worst trade | -81.30% | -79.75% |
+
+Benchmark context (same period): S&P total return `572.08%`, CAGR `10.55%`, Sharpe `0.611`.
+
+Normalized vs Raw delta: `+1.74%/yr` CAGR, `-1.08%` volatility, `+0.103` Sharpe, and `+3.75%` win rate, with a slightly deeper max drawdown (`-0.86%`).
+
+### Interpretation
+
+- Both implementations materially outperform the benchmark over the full sample, suggesting the Magic Formula signal remains strong in this configuration.
+- The normalized variant appears more efficient: higher CAGR and Sharpe with lower volatility and lower market beta than the raw variant.
+- Drawdown remains severe in both approaches (about `-44%` to `-45%`), so the strategy still carries substantial equity-like tail risk despite strong long-run returns.
+- Trade-level statistics (higher win rate and slightly better median return in normalized) indicate consistency improved, not just a few outlier winners.
+- Because benchmark correlation is still high (`~0.81-0.83`), this is best interpreted as enhanced equity exposure rather than a market-neutral return stream.
 
 ## Graphs
 
@@ -165,18 +228,11 @@ Files are under `docs/images/backtests/normalized/`.
 - Quarterly fundamentals vs trading-date market snapshots require careful lag alignment.
 - Missing price windows can impact trade simulation realism.
 - Source/API constraints may limit completeness for specific symbols/time ranges.
+- Alpha Vantage does not reliably retain history for delisted tickers, which can exclude failed names from the test universe and introduce survivorship bias in reported results.
 - Some SQL currently mixes parameterized and hardcoded project references.
 
-### Known open items
+## Summary
 
-> Placeholder: add confirmed known issues here.
-- `TODO: Document exact AlphaVantage/API limitations and impact`
-- `TODO: Document survivorship-bias handling (if any)`
-- `TODO: Document transaction costs/slippage assumptions`
-- `TODO: Document rebalancing and execution assumptions`
+This project delivers an end-to-end Magic Formula research and backtesting workflow, from data ingestion and factor construction to portfolio simulation and benchmark comparison. Both raw and normalized ranking methods outperform the S&P over the tested period, with normalized ranking showing stronger risk-adjusted performance. Interpret all results alongside the documented limitations, especially survivorship bias risk caused by incomplete delisted-ticker coverage in Alpha Vantage.
 
-## Notes
 
-- Keep notebooks in `notebooks/` and SQL in `sql/`.
-- Use descriptive names for SQL files by feature/purpose.
-- Add methodology notes and experiment logs under `docs/`.
